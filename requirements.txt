@@ -1,0 +1,6 @@
+openai
+anthropic
+ollama
+pydantic
+python-dotenv
+rich
