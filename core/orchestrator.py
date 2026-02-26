@@ -43,16 +43,18 @@ class CouncilOrchestrator:
         """Round 2: Each agent critiques the others. Receives ONLY the other agents' Round 1 responses."""
         results = {}
 
-        # Build a clean, compact transcript — no fluff
-        transcript = ""
-        for agent_name, response in round_1_results.items():
-            # Truncate each response to ~400 chars to keep context tight
-            truncated = response[:600] + "..." if len(response) > 600 else response
-            transcript += f"[{agent_name}]: {truncated}\n\n"
-
         with concurrent.futures.ThreadPoolExecutor(max_workers=len(agents)) as executor:
             future_to_agent = {}
             for agent in agents:
+                # Build a clean, compact transcript EXCLUDING the current agent
+                transcript = ""
+                for agent_name, response in round_1_results.items():
+                    if agent_name == agent.name:
+                        continue
+                    # Truncate each response to ~1000 chars to keep context tight
+                    truncated = response[:1000] + "..." if len(response) > 1000 else response
+                    transcript += f"[{agent_name}]: {truncated}\n\n"
+
                 round_2_prompt = (
                     f"ORIGINAL QUESTION: {original_prompt}\n\n"
                     f"=== ROUND 1: WHAT YOUR COLLEAGUES SAID ===\n"
@@ -90,13 +92,13 @@ class CouncilOrchestrator:
         # Build compact Round 1 summary (key points only, truncated)
         round_1_summary = ""
         for agent_name, response in round_1_results.items():
-            truncated = response[:500] + "..." if len(response) > 500 else response
+            truncated = response[:1000] + "..." if len(response) > 1000 else response
             round_1_summary += f"[{agent_name}]:\n{truncated}\n\n"
 
         # Build compact Round 2 summary
         round_2_summary = ""
         for agent_name, response in round_2_results.items():
-            truncated = response[:400] + "..." if len(response) > 400 else response
+            truncated = response[:1000] + "..." if len(response) > 1000 else response
             round_2_summary += f"[{agent_name} critique]:\n{truncated}\n\n"
 
         judge_prompt = (

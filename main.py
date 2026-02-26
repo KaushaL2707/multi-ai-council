@@ -47,29 +47,34 @@ def print_round_header(num, title):
     console.print(Rule(f"[bold white]  Round {num}: {title}  [/bold white]", style="bright_blue"))
     console.print()
 
-def print_agent_panel(agent_name, response, subtitle):
+def print_agent_panel(agent_name, response, subtitle, progress_obj=None):
     s = get_style(agent_name)
     emoji, color = s["emoji"], s["color"]
     text = response.strip()
     if len(text) > 1500:
         text = text[:1500] + "\n\n[dim]... (truncated)[/dim]"
-    console.print(Panel(
+    
+    panel = Panel(
         Markdown(text),
         title=f"{emoji} [bold {color}]{agent_name}[/bold {color}]  [dim]{subtitle}[/dim]",
         border_style=color,
         padding=(1, 2),
-    ))
-    console.print()
+    )
+    
+    # If rendering inside a live Progress bar, use its thread-safe print method
+    if progress_obj:
+        progress_obj.print(panel)
+        progress_obj.print()
+    else:
+        console.print(panel)
+        console.print()
 
 def print_verdict(verdict):
     console.print()
     console.print(Rule("[bold bright_green]  ⚖️  THE JUDGE'S VERDICT  [/bold bright_green]", style="bright_green"))
     console.print()
-    console.print(Panel(
-        Markdown(verdict.strip()),
-        border_style="bright_green",
-        padding=(1, 3),
-    ))
+    # Don't wrap in a Panel so the Markdown headers render without width interference
+    console.print(Markdown(verdict.strip()))
     console.print()
     console.print(Rule("[dim]Council Adjourned[/dim]", style="dim"))
     console.print()
@@ -161,9 +166,7 @@ def main():
             p.add_task(f"[{s['color']}]{s['emoji']} {agent.name}[/{s['color']}] [dim]thinking...[/dim]", total=None)
 
         def r1_callback(agent_name, response):
-            p.stop()
-            print_agent_panel(agent_name, response, "Initial Analysis")
-            p.start()
+            print_agent_panel(agent_name, response, "Initial Analysis", progress_obj=p)
 
         round_1_results = orchestrator.run_round_1(user_input, active_agents, callback=r1_callback)
 
@@ -176,9 +179,7 @@ def main():
             p.add_task(f"[{s['color']}]{s['emoji']} {agent.name}[/{s['color']}] [dim]critiquing...[/dim]", total=None)
 
         def r2_callback(agent_name, response):
-            p.stop()
-            print_agent_panel(agent_name, response, "Critique")
-            p.start()
+            print_agent_panel(agent_name, response, "Critique", progress_obj=p)
 
         round_2_results = orchestrator.run_round_2(user_input, round_1_results, active_agents, callback=r2_callback)
 
